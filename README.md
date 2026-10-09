@@ -12,7 +12,7 @@ A PHP/MySQL storefront prototype for VPN packages.
 2. Start Apache and MySQL.
 3. Create a database named `shop_db` in phpMyAdmin and import [shop_db (4).sql](./shop_db%20(4).sql).
 4. For local development, the app defaults to `127.0.0.1`, database `shop_db`, user `root`, and an empty password. **Do not use these defaults on a public server.**
-5. Open `http://localhost/Vpn_Store/login.php` or `register.php`.
+5. Open `http://localhost/Vpn_Store/catalog.php` to browse database products. Register at `register.php` and sign in at `login.php` if needed.
 
 ## Environment configuration
 Set these environment variables in the web server for production:
@@ -23,14 +23,15 @@ Set these environment variables in the web server for production:
 - `CONTACT_TO` (real mailbox receiving contact requests)
 - `CONTACT_FROM` (verified sender address accepted by the mail server)
 
-The app never takes prices from the browser. Checkout expects `$_SESSION['cart']` to be an associative array of product IDs to quantities, for example `[12 => 2]`. Cart buttons in the current storefront must populate this session value before checkout can place an order.
+The supported catalog flow is `catalog.php` → `cart.php` → `checkout.php`. The cart stores only product IDs and quantities in the session; product names and prices are read from MySQL on the server. The checkout recalculates the order and records it as unpaid. The legacy `shop.php` theme page is separate from this new database-backed catalog; do not assume its old theme controls are connected to checkout.
 
 ## Important production checklist
 - Configure a dedicated least-privilege MySQL account; never expose database errors to visitors.
 - Migrate `billing_details`, `orders`, and `order_items` to InnoDB before relying on transactional order creation. See [database hardening migration](./database/hardening-migration.sql).
 - Configure and test SMTP in PHPMailer; the contact handler intentionally refuses to send until valid sender and recipient addresses are configured.
 - Integrate a real payment provider before advertising that payments are accepted. Checkout currently records an unpaid order only.
-- Add CSRF tokens, login throttling, password reset, HTTPS, and authorization checks to any future account/admin routes.
+- CSRF tokens are used by the login, registration, cart, and checkout forms. Still add login throttling, password reset, HTTPS, and authorization checks before a public launch.
+- Passwords created through the updated registration form are hashed. Existing accounts created with plaintext passwords may need a safe password-reset/re-registration process; do not re-enable plaintext password comparisons.
 - Import the database SQL before using the app; do not commit real credentials or customer data.
 
 ## Current limitations
