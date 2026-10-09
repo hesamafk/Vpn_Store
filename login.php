@@ -3,7 +3,11 @@ declare(strict_types=1);
 require_once __DIR__ . '/config.php';
 
 $message = '';
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !csrf_valid()) {
+    http_response_code(403);
+    $message = 'درخواست نامعتبر است. صفحه را تازه‌سازی کنید و دوباره تلاش کنید.';
+}
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrf_valid()) {
     $identity = trim((string)($_POST['username'] ?? ''));
     $password = (string)($_POST['password'] ?? '');
 
