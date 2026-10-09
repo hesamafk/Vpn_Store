@@ -3,6 +3,8 @@ declare(strict_types=1);
 require_once __DIR__ . '/config.php';
 
 $message = '';
+// Safe default: order submission stays disabled until the owner explicitly opts out of test mode.
+$testMode = (getenv('SHOP_TEST_MODE') ?: '1') !== '0';
 $cart = $_SESSION['cart'] ?? [];
 if (!is_array($cart)) $cart = [];
 $cart = array_filter($cart, static fn($qty, $id) => ctype_digit((string)$id) && (int)$id > 0 && is_numeric($qty) && (int)$qty > 0 && (int)$qty <= 99, ARRAY_FILTER_USE_BOTH);
@@ -29,7 +31,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !csrf_valid()) {
     http_response_code(403);
     $message = 'درخواست نامعتبر است. صفحه را تازه‌سازی کنید و دوباره تلاش کنید.';
 }
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrf_valid()) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrf_valid() && $testMode) {
+    $message = 'حالت آزمایشی فعال است؛ ثبت سفارش غیرفعال است. برای آزمایش دستی ثبت سفارش، SHOP_TEST_MODE=0 را تنظیم کنید.';
+}
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrf_valid() && !$testMode) {
     $email = trim((string)($_POST['email'] ?? ''));
     $first = trim((string)($_POST['fullname-2'] ?? ''));
     $last = trim((string)($_POST['lastname'] ?? ''));
@@ -80,7 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrf_valid()) {
 }
 ?>
 <!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>تسویه‌حساب</title><link rel="stylesheet" href="assets/css/bootstrap.min.css"><link rel="stylesheet" href="assets/css/main.css"><style>body{font-family:Tahoma,sans-serif;background:#f6f7f9}.checkout{max-width:920px;margin:3rem auto;background:white;padding:2rem;border-radius:16px}.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}.fields label{display:block}.fields input,.fields textarea{width:100%;padding:.7rem;border:1px solid #d5dbe4;border-radius:7px}.btn{background:#1d6b54;color:white;padding:.8rem 1.2rem}@media(max-width:640px){.fields{grid-template-columns:1fr}}</style></head><body><main class="checkout">
-<h1>تسویه‌حساب</h1><?php if($message!==''): ?><p role="status"><?= h($message) ?></p><?php endif; ?>
+<h1>تسویه‌حساب</h1><?php if($testMode): ?><p role="note" style="background:#fff3cd;color:#664d03;padding:1rem;border-radius:8px">حالت آزمایشی فعال است؛ ثبت سفارش در حال حاضر غیرفعال است و هیچ خریدی انجام نمی‌شود.</p><?php endif; ?><?php if($message!==''): ?><p role="status"><?= h($message) ?></p><?php endif; ?>
 <?php if($items): ?><h2>سبد خرید</h2><ul><?php foreach($items as $item): ?><li><?= h($item['product_name']) ?> × <?= (int)$item['quantity'] ?> — <?= number_format((float)$item['line_total'],2) ?></li><?php endforeach; ?></ul><p><strong>جمع کالاها: <?= number_format($subtotal,2) ?></strong></p>
 <form method="post" action="checkout.php"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><div class="fields">
 <label>ایمیل *<input type="email" name="email" required maxlength="255"></label>
