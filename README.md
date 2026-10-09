@@ -23,7 +23,7 @@ Set these environment variables in the web server for production:
 - `CONTACT_TO` (real mailbox receiving contact requests)
 - `CONTACT_FROM` (verified sender address accepted by the mail server)
 
-The supported catalog flow is `catalog.php` → `cart.php` → `checkout.php`. The cart stores only product IDs and quantities in the session; product names and prices are read from MySQL on the server. The checkout recalculates the order and records it as unpaid. The legacy `shop.php` theme page is separate from this new database-backed catalog; do not assume its old theme controls are connected to checkout.
+The supported catalog flow is `catalog.php` → `cart.php` → `checkout.php`. The cart stores only product IDs and quantities in the session; product names and prices are read from MySQL on the server. The checkout recalculates the order and records it as unpaid. **The committed SQL dump currently contains no rows in `products`, so the catalog is expected to be empty after a fresh import.** Add your real VPN plan names, duration/data limits, prices, and delivery terms before treating it as a usable store; do not publish invented demo prices. The legacy `shop.php` theme page is separate from this new database-backed catalog; do not assume its old theme controls are connected to checkout.
 
 ## Important production checklist
 - Configure a dedicated least-privilege MySQL account; never expose database errors to visitors.
