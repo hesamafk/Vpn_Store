@@ -15,16 +15,7 @@
 <body>
 
 <?php
-$servername = "localhost";
-$username = "root";
-$password = "";
-$dbname = "shop_db";
-
-$conn = new mysqli($servername, $username, $password, $dbname);
-
-if ($conn->connect_error) {
-    die("اتصال به پایگاه داده ناموفق: " . $conn->connect_error);
-}
+require_once __DIR__ . '/config.php';
 
 $sql_header1 = "SELECT title, href FROM header1";
 $result_header1 = $conn->query($sql_header1);
