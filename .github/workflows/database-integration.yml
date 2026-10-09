@@ -54,6 +54,7 @@ jobs:
           }
           $stmt = $db->prepare("SELECT id, product_name, price, category FROM products WHERE id = ? LIMIT 1");
           $id = 1; $stmt->bind_param("i", $id); $stmt->execute();
+          $stmt->get_result()->fetch_assoc(); $stmt->close();
           $db->begin_transaction();
           $method = "CI rollback test"; $status = "CI rollback test"; $userId = 0; $subtotal = 1.00; $shipping = 0.00; $total = 1.00;
           $insert = $db->prepare("INSERT INTO orders (user_id, order_total, shipping_cost, payment_method, total_amount, status) VALUES (?, ?, ?, ?, ?, ?)");
