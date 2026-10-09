@@ -22,6 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrf_valid()) {
 
         if ($row && password_verify($password, (string)$row['password'])) {
             session_regenerate_id(true);
+            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
             $_SESSION['user_id'] = (int)$row['id'];
             $_SESSION['username'] = (string)$row['username'];
             header('Location: shop.php');
@@ -40,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrf_valid()) {
 </head><body><main class="auth-card">
 <h1>ورود به حساب</h1><p>برای ورود، نام کاربری یا ایمیل خود را وارد کنید.</p>
 <?php if ($message !== ''): ?><p class="notice" role="alert"><?= h($message) ?></p><?php endif; ?>
-<form method="post" action="login.php" autocomplete="on">
+<form method="post" action="login.php" autocomplete="on"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
 <label for="username">نام کاربری یا ایمیل</label><input id="username" name="username" autocomplete="username" required maxlength="255">
 <label for="password">رمز عبور</label><input id="password" name="password" type="password" autocomplete="current-password" required>
 <button type="submit">ورود</button></form><p style="margin-top:1rem">حساب ندارید؟ <a href="register.php">ثبت‌نام کنید</a></p></main></body></html>
