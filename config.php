@@ -33,3 +33,16 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
 function h(mixed $value): string {
     return htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
+
+function csrf_token(): string {
+    if (empty($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return (string)$_SESSION['csrf_token'];
+}
+
+function csrf_valid(): bool {
+    $submitted = (string)($_POST['csrf_token'] ?? '');
+    $stored = (string)($_SESSION['csrf_token'] ?? '');
+    return $submitted !== '' && $stored !== '' && hash_equals($stored, $submitted);
+}
