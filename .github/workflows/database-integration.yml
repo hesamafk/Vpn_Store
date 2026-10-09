@@ -1,0 +1,65 @@
+name: PHP and database integration
+on:
+  push:
+    branches: [main, database-integration-checks]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  php-and-mysql:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: shop_db
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mysqli, mbstring
+      - name: Lint PHP files
+        run: find . -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+      - name: Import the committed database dump
+        run: mysql -h 127.0.0.1 -uroot -proot shop_db < "shop_db (4).sql"
+      - name: Apply transaction-engine migration
+        run: mysql -h 127.0.0.1 -uroot -proot shop_db < database/hardening-migration.sql
+      - name: Smoke-test checkout schema, prepared queries, and rollback
+        env:
+          SHOP_DB_HOST: 127.0.0.1
+          SHOP_DB_NAME: shop_db
+          SHOP_DB_USER: root
+          SHOP_DB_PASSWORD: root
+        run: |
+          php -r '
+          mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+          $db = new mysqli(getenv("SHOP_DB_HOST"), getenv("SHOP_DB_USER"), getenv("SHOP_DB_PASSWORD"), getenv("SHOP_DB_NAME"));
+          $db->set_charset("utf8mb4");
+          foreach (["billing_details", "orders", "order_items"] as $table) {
+              $stmt = $db->prepare("SELECT ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?");
+              $stmt->bind_param("s", $table);
+              $stmt->execute();
+              $engine = $stmt->get_result()->fetch_column();
+              if (strtoupper((string)$engine) !== "INNODB") { fwrite(STDERR, "$table is not InnoDB\n"); exit(1); }
+          }
+          $stmt = $db->prepare("SELECT id, product_name, price, category FROM products WHERE id = ? LIMIT 1");
+          $id = 1; $stmt->bind_param("i", $id); $stmt->execute();
+          $db->begin_transaction();
+          $method = "CI rollback test"; $status = "CI rollback test"; $userId = 0; $subtotal = 1.00; $shipping = 0.00; $total = 1.00;
+          $insert = $db->prepare("INSERT INTO orders (user_id, order_total, shipping_cost, payment_method, total_amount, status) VALUES (?, ?, ?, ?, ?, ?)");
+          $insert->bind_param("iddsds", $userId, $subtotal, $shipping, $method, $total, $status); $insert->execute();
+          $db->rollback();
+          $check = $db->query("SELECT COUNT(*) AS n FROM orders WHERE payment_method = \"CI rollback test\"")->fetch_assoc();
+          if ((int)$check["n"] !== 0) { fwrite(STDERR, "Order rollback did not remove the test row\n"); exit(1); }
+          echo "Database schema, InnoDB engines, prepared SELECT, and transaction rollback passed.\n";
+          '
