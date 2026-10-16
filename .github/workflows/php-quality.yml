@@ -18,3 +18,4 @@ jobs:
         run: |
           set -eu
           find . -type f -name '*.php' -not -path './.git/*' -print0 | xargs -0 -r -n1 php -l
+

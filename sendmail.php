@@ -32,20 +32,19 @@ if (!filter_var($to, FILTER_VALIDATE_EMAIL) || !filter_var($from, FILTER_VALIDAT
     exit('فرم تماس هنوز پیکربندی نشده است. لطفاً از راه ارتباطی جایگزین استفاده کنید.');
 }
 
-require_once __DIR__ . '/phpmailer/class.phpmailer.php';
-$mail = new PHPMailer();
-$mail->CharSet = 'UTF-8';
-$mail->From = $from;
-$mail->FromName = 'فرم تماس وب‌سایت';
-$mail->AddAddress($to);
-$mail->AddReplyTo($email, $name);
-$mail->Subject = 'پیام جدید از فرم تماس';
-$mail->IsHTML(false);
-$mail->Body = "نام: {$name}\nایمیل: {$email}\nتلفن: {$phone}\nوب‌سایت: {$website}\n\nپیام:\n{$message}";
-if (!$mail->Send()) {
-    error_log('Contact mail failed: ' . $mail->ErrorInfo);
+// Uses PHP's configured mail transport; no absent PHPMailer dependency.
+$subject = 'New website contact';
+$body = "Name: {$name}\nEmail: {$email}\nPhone: {$phone}\nWebsite: {$website}\n\n{$message}";
+$headers = [
+    'From' => $from,
+    'Reply-To' => $email,
+    'Content-Type' => 'text/plain; charset=UTF-8',
+];
+if (!function_exists('mail') || !mail($to, $subject, $body, $headers)) {
+    error_log('Configured contact mail transport rejected the message.');
     http_response_code(502);
-    exit('ارسال پیام انجام نشد. لطفاً بعداً دوباره تلاش کنید.');
+    exit('ارسال پیام انجام نشد. تنظیمات ارسال ایمیل سرور را بررسی کنید.');
 }
 header('Content-Type: text/html; charset=utf-8');
-echo '<!doctype html><html lang="fa" dir="rtl"><meta charset="utf-8"><title>پیام ارسال شد</title><p>پیام شما ارسال شد.</p><a href="index.html">بازگشت</a></html>';
+echo '<!doctype html><html lang="fa" dir="rtl"><meta charset="utf-8"><title>پیام ارسال شد</title><p>پیام شما ارسال شد.</p><a href="catalog.php">بازگشت</a></html>';
+

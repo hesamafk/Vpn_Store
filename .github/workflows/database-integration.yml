@@ -34,6 +34,8 @@ jobs:
         run: mysql -h 127.0.0.1 -uroot -proot shop_db < "shop_db (4).sql"
       - name: Apply transaction-engine migration
         run: mysql -h 127.0.0.1 -uroot -proot shop_db < database/hardening-migration.sql
+      - name: Link orders to billing records
+        run: mysql -h 127.0.0.1 -uroot -proot shop_db < database/billing-link-migration.sql
       - name: Smoke-test checkout schema, prepared queries, and rollback
         env:
           SHOP_DB_HOST: 127.0.0.1
@@ -64,3 +66,4 @@ jobs:
           if ((int)$check["n"] !== 0) { fwrite(STDERR, "Order rollback did not remove the test row\n"); exit(1); }
           echo "Database schema, InnoDB engines, prepared SELECT, and transaction rollback passed.\n";
           '
+

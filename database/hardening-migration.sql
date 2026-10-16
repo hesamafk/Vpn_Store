@@ -7,3 +7,4 @@ ALTER TABLE order_items ENGINE=InnoDB;
 -- Optional uniqueness hardening. Run only after resolving any existing duplicate values.
 -- ALTER TABLE login ADD UNIQUE KEY uq_login_username (username);
 -- ALTER TABLE login ADD UNIQUE KEY uq_login_email (email);
+

@@ -1,41 +1,43 @@
-# VPN Store
+# PHP Store — Local Commerce Project
 
-A PHP/MySQL storefront prototype for VPN packages.
+A Persian PHP/MySQL storefront with a database-backed catalogue, registration, login, session cart and transactional order capture. Checkout records unpaid orders; no payment gateway is included.
 
-## Requirements
-- PHP 8.1+ with mysqli and mbstring enabled
-- MySQL 8+ or a compatible MariaDB release
-- Apache/Nginx configured to serve PHP
+## Local setup
 
-## Local setup (XAMPP)
-1. Copy/clone this repository into `C:\\xampp\\htdocs\\Vpn_Store`.
-2. Start Apache and MySQL.
-3. Create a database named `shop_db` in phpMyAdmin and import [shop_db (4).sql](./shop_db%20(4).sql).
-4. For local development, the app defaults to `127.0.0.1`, database `shop_db`, user `root`, and an empty password. **Do not use these defaults on a public server.**
-5. Open `http://localhost/Vpn_Store/catalog.php` to browse database products. Register at `register.php` and sign in at `login.php` if needed.
-6. **Test mode is on by default.** Checkout displays a test-mode notice and refuses to create orders. Keep it enabled until real VPN plans, prices, and fulfillment are defined. Do not disable it on a public server.
+Use PHP 8.2+ with `mysqli` and `mbstring`, plus MySQL 8 (or a compatible MariaDB installation). XAMPP can provide the local server. Copy this repository into `htdocs` and create a local `shop_db` database.
 
-## Environment configuration
-Set these environment variables in the web server for production:
-- `SHOP_DB_HOST`
-- `SHOP_DB_NAME`
-- `SHOP_DB_USER`
-- `SHOP_DB_PASSWORD`
-- `CONTACT_TO` (real mailbox receiving contact requests)
-- `CONTACT_FROM` (verified sender address accepted by the mail server)
+Import the SQL in this order into your local development database:
 
-`SHOP_TEST_MODE` defaults to `1` (safe test mode). Only set `SHOP_TEST_MODE=0` in a controlled local test environment if you intentionally need to exercise unpaid-order recording. There is no payment gateway, and disabling this flag does not make the store ready to sell.
+1. `shop_db (4).sql` — supplied schema and sample data
+2. `database/hardening-migration.sql` — enables transactions for order tables
+3. `database/billing-link-migration.sql` — enables product locking and links an order to its billing record; run once
 
-The supported catalog flow is `catalog.php` → `cart.php` → `checkout.php`. The cart stores only product IDs and quantities in the session; product names and prices are read from MySQL on the server. The checkout recalculates the order and records it as unpaid. **The committed SQL dump currently contains no rows in `products`, so the catalog is expected to be empty after a fresh import.** Add your real VPN plan names, duration/data limits, prices, and delivery terms before treating it as a usable store; do not publish invented demo prices. The legacy `shop.php` theme page is separate from this new database-backed catalog; do not assume its old theme controls are connected to checkout.
+Back up any existing database before applying migrations. Configure `SHOP_DB_HOST`, `SHOP_DB_NAME`, `SHOP_DB_USER` and `SHOP_DB_PASSWORD` as server environment variables; `.env.example` is documentation, not an automatically loaded file. Local defaults are `127.0.0.1`, `shop_db`, `root`, and an empty password.
 
-## Important production checklist
-- Configure a dedicated least-privilege MySQL account; never expose database errors to visitors.
-- Migrate `billing_details`, `orders`, and `order_items` to InnoDB before relying on transactional order creation. See [database hardening migration](./database/hardening-migration.sql).
-- Configure and test SMTP in PHPMailer; the contact handler intentionally refuses to send until valid sender and recipient addresses are configured.
-- Integrate a real payment provider before advertising that payments are accepted. Checkout currently records an unpaid order only.
-- CSRF tokens are used by the login, registration, cart, and checkout forms. Still add login throttling, password reset, HTTPS, and authorization checks before a public launch.
-- Passwords created through the updated registration form are hashed. Existing accounts created with plaintext passwords may need a safe password-reset/re-registration process; do not re-enable plaintext password comparisons.
-- Import the database SQL before using the app; do not commit real credentials or customer data.
+Open `catalog.php` through Apache, or from the repository run `php -S 127.0.0.1:8000` and visit http://127.0.0.1:8000. `index.php`, `shop.php` and the legacy `indexh.html` URL route to the catalogue.
 
-## Current limitations
-This is a portfolio/demo project, not a production-ready VPN provisioning or payment platform. No live VPN subscription provisioning or payment gateway is configured.
+## Source layout
+
+- `config.php` — database connection, session setup, HTML escaping and CSRF helpers
+- `catalog.php`, `cart.php`, `checkout.php` — browsing and order flow
+- `login.php`, `register.php` — account forms
+- `sendmail.php` — optional contact handler using PHP's configured mail transport
+- `database/` — incremental database migrations
+- `store.css` — shared layout defaults and focus styles
+- `.github/workflows/` — PHP lint and MySQL integration checks
+
+## Order and email behavior
+
+Order submission is disabled by default. For a local order-recording test, set `SHOP_TEST_MODE=0`. The server recalculates and locks catalogue prices inside the order transaction, links billing details, and redirects after success. Orders remain unpaid; there is no automatic provisioning or payment processing.
+
+For contact email, configure `CONTACT_TO`, `CONTACT_FROM` and the server's PHP mail/SMTP transport. An unconfigured or rejected delivery returns an explicit error. No missing PHPMailer directory is required.
+
+## Validation
+
+Run `python scripts/check_project.py` with Python 3 and Node.js for bundled asset/JavaScript checks; run `php -l` on the PHP files with your runtime. The integration workflow imports the supplied SQL, applies both migrations, checks prepared queries and transaction rollback.
+
+See [validation results](docs/VALIDATION.md). A PHP AST parse is not a substitute for PHP/MySQL runtime verification. This remains a local learning project; production payment, account recovery, abuse controls and deployment operations are outside its current scope.
+
+## Source history
+
+The original SQL and earlier source remain in Git history. The missing legacy template assets were replaced by the maintained local catalogue flow. Existing notices are preserved; this pass adds no license grant.
